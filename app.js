@@ -43,6 +43,7 @@ function startTimer(){
     }
   },1000);
 }
+
 function formatTime(s){
   return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
@@ -54,14 +55,12 @@ function loadLeaderboard(){
 
 function saveScore(score){
   const lb = loadLeaderboard();
-
   lb.push({
     name: currentUserName,
     score,
     percentage: Math.round(score/questions.length*100),
-    answers: [...answers] // 🔥 IMPORTANT (for review)
+    answers: [...answers]
   });
-
   lb.sort((a,b)=>b.score-a.score);
   localStorage.setItem('cbt_leaderboard',JSON.stringify(lb.slice(0,10)));
 }
@@ -110,18 +109,13 @@ function renderQuestion(){
 
   const card=document.createElement('div');
   card.className='exam-card';
-
   card.innerHTML=`<h3>Q${currentIndex+1}</h3><p>${q.text}</p>`;
 
   q.options.forEach((opt,i)=>{
     const btn=document.createElement('button');
     const letter=['A','B','C','D'][i];
     btn.textContent=`${letter}. ${opt}`;
-
-    if(answers[currentIndex]===letter){
-      btn.style.background='#4ade80';
-    }
-
+    if(answers[currentIndex]===letter) btn.style.background='#4ade80';
     btn.onclick=()=>{
       answers[currentIndex]=letter;
       if(currentIndex<questions.length-1){
@@ -129,13 +123,11 @@ function renderQuestion(){
         renderQuestion();
       } else submitExam();
     };
-
     card.appendChild(btn);
   });
 
   const nav=document.createElement('div');
   nav.className='question-nav';
-
   questions.forEach((_,i)=>{
     const b=document.createElement('div');
     b.className='nav-number';
@@ -153,21 +145,16 @@ function renderQuestion(){
 // ---------------- REVIEW ----------------
 function showReview(data){
   app.innerHTML='';
-
   const card=document.createElement('div');
   card.className='exam-card';
-
   card.innerHTML=`<h2>${data.name}'s Result</h2><p>${data.score}/20</p>`;
 
   data.answers.forEach((ans,i)=>{
     const q=questions[i];
     const div=document.createElement('div');
     div.className='review-card';
-
     const correct=q.answer;
-
     div.classList.add(ans===correct?'correct':'wrong');
-
     div.innerHTML=`
       <p>${q.text}</p>
       <div class="review-answers">
@@ -175,15 +162,14 @@ function showReview(data){
         <div><strong>Correct:</strong> ${correct}</div>
       </div>
     `;
-
     card.appendChild(div);
   });
 
   const back=document.createElement('button');
   back.textContent='Back';
   back.onclick=start;
-
   card.appendChild(back);
+
   app.appendChild(card);
 }
 
@@ -191,26 +177,16 @@ function showReview(data){
 function submitExam(){
   if(submitted) return;
   submitted=true;
-
   clearInterval(timerId);
-
   const score=answers.reduce((s,a,i)=> s + (a===questions[i].answer),0);
-
   saveScore(score);
-
-  showReview({
-    name: currentUserName,
-    score,
-    answers
-  });
-
+  showReview({ name: currentUserName, score, answers });
   app.appendChild(buildLeaderboard());
 }
 
 // ---------------- START ----------------
 function start(){
   app.innerHTML='';
-
   const div=document.createElement('div');
   div.className='name-input-card';
 
@@ -221,17 +197,20 @@ function start(){
   btn.textContent='Continue';
 
   const options=document.createElement('div');
+  options.style.display='flex';
+  options.style.gap='10px';
+  options.style.marginTop='10px';
 
   btn.onclick=()=>{
     const name=input.value.trim();
     if(!name) return alert('Enter name');
-
     currentUserName=name;
 
     const user=getUser(name);
     options.innerHTML='';
 
     if(user){
+      // Returning user options
       const review=document.createElement('button');
       review.textContent='Review Score';
       review.onclick=()=>showReview(user);
@@ -249,6 +228,7 @@ function start(){
 
       options.append(review,retake);
     } else {
+      // New user goes straight to quiz
       startTimer();
       renderQuestion();
     }
@@ -261,4 +241,5 @@ function start(){
   app.appendChild(buildLeaderboard());
 }
 
+// ---------------- INIT ----------------
 start();
