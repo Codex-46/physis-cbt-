@@ -2,30 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Physics CBT — Exam Practice</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <div class="exam-shell">
+
+    <!-- HEADER -->
     <header class="exam-header">
       <div>
         <h1>Physics CBT</h1>
         <p>20 Questions • Work, Energy, Power, Friction, Surface Tension, Viscosity</p>
       </div>
+
       <div class="timer-panel">
         <span>Time left</span>
         <strong id="timer">20:00</strong>
       </div>
     </header>
 
+    <!-- MAIN APP (JS controls everything here) -->
     <main id="app" class="exam-main"></main>
 
+    <!-- GLOBAL CONTROLS (won’t be deleted by JS) -->
+    <div id="global-controls"></div>
+
+    <!-- FOOTER -->
     <footer class="exam-footer">
       Built for fast practice and quick review.
     </footer>
+
   </div>
 
+  <!-- SCRIPT -->
   <script src="app.js"></script>
 </body>
 </html>
