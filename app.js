@@ -43,14 +43,25 @@ function startTimer(){
     }
   },1000);
 }
-
-function formatTime(s){ return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+function formatTime(s){
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
 
 // ---------------- LEADERBOARD ----------------
-function loadLeaderboard(){ return JSON.parse(localStorage.getItem('cbt_leaderboard'))||[]; }
+function loadLeaderboard(){
+  return JSON.parse(localStorage.getItem('cbt_leaderboard'))||[];
+}
+
 function saveScore(score){
   const lb = loadLeaderboard();
-  lb.push({name:currentUserName,score,percentage:Math.round(score/questions.length*100),time:new Date().toLocaleDateString()});
+
+  lb.push({
+    name: currentUserName,
+    score,
+    percentage: Math.round(score/questions.length*100),
+    answers: [...answers] // 🔥 IMPORTANT (for review)
+  });
+
   lb.sort((a,b)=>b.score-a.score);
   localStorage.setItem('cbt_leaderboard',JSON.stringify(lb.slice(0,10)));
 }
@@ -60,16 +71,25 @@ function buildLeaderboard(){
   const div = document.createElement('div');
   div.className='leaderboard-panel';
   div.innerHTML='<h3>Leaderboard</h3>';
+
   const del = document.createElement('button');
   del.className='delete-leaderboard';
   del.textContent='Delete Leaderboard';
-  del.onclick=()=>{ if(prompt('PIN')==='2151'){ localStorage.removeItem('cbt_leaderboard'); location.reload(); } else alert('Wrong PIN'); };
+  del.onclick=()=>{
+    if(prompt('PIN')==='2151'){
+      localStorage.removeItem('cbt_leaderboard');
+      location.reload();
+    } else alert('Wrong PIN');
+  };
   div.appendChild(del);
 
-  if(lb.length===0){ div.innerHTML+='<p>No scores yet</p>'; return div; }
+  if(lb.length===0){
+    div.innerHTML+='<p>No scores yet</p>';
+    return div;
+  }
 
   lb.forEach((e,i)=>{
-    const item = document.createElement('div');
+    const item=document.createElement('div');
     item.className='leaderboard-item';
     item.textContent=`${i+1}. ${e.name} - ${e.score}/20`;
     div.appendChild(item);
@@ -78,71 +98,167 @@ function buildLeaderboard(){
   return div;
 }
 
+// ---------------- USER HISTORY ----------------
+function getUser(name){
+  return loadLeaderboard().find(e=>e.name.toLowerCase()===name.toLowerCase());
+}
+
 // ---------------- QUIZ ----------------
 function renderQuestion(){
   app.innerHTML='';
   const q = questions[currentIndex];
-  const card = document.createElement('div'); card.className='exam-card';
-  const h = document.createElement('h3'); h.textContent=`Q${currentIndex+1}`;
-  const p = document.createElement('p'); p.textContent=q.text;
-  card.append(h,p);
+
+  const card=document.createElement('div');
+  card.className='exam-card';
+
+  card.innerHTML=`<h3>Q${currentIndex+1}</h3><p>${q.text}</p>`;
 
   q.options.forEach((opt,i)=>{
-    const btn = document.createElement('button');
-    btn.textContent=`${['A','B','C','D'][i]}. ${opt}`;
-    if(answers[currentIndex]===['A','B','C','D'][i]) btn.style.background='#4ade80';
+    const btn=document.createElement('button');
+    const letter=['A','B','C','D'][i];
+    btn.textContent=`${letter}. ${opt}`;
+
+    if(answers[currentIndex]===letter){
+      btn.style.background='#4ade80';
+    }
+
     btn.onclick=()=>{
-      answers[currentIndex]=['A','B','C','D'][i];
-      renderQuestionNav();
-      if(currentIndex<questions.length-1){ currentIndex++; renderQuestion(); } else { submitExam(); }
+      answers[currentIndex]=letter;
+      if(currentIndex<questions.length-1){
+        currentIndex++;
+        renderQuestion();
+      } else submitExam();
     };
+
     card.appendChild(btn);
   });
 
-  const navDiv = document.createElement('div'); navDiv.className='question-nav';
-  questions.forEach((_,i)=>{
-    const navBtn = document.createElement('div'); navBtn.className='nav-number';
-    navBtn.textContent=i+1;
-    if(answers[i]) navBtn.classList.add('answered');
-    if(i===currentIndex) navBtn.classList.add('active');
-    navBtn.onclick=()=>{ currentIndex=i; renderQuestion(); };
-    navDiv.appendChild(navBtn);
-  });
-  card.appendChild(navDiv);
+  const nav=document.createElement('div');
+  nav.className='question-nav';
 
+  questions.forEach((_,i)=>{
+    const b=document.createElement('div');
+    b.className='nav-number';
+    b.textContent=i+1;
+    if(answers[i]) b.classList.add('answered');
+    if(i===currentIndex) b.classList.add('active');
+    b.onclick=()=>{ currentIndex=i; renderQuestion(); };
+    nav.appendChild(b);
+  });
+
+  card.appendChild(nav);
   app.appendChild(card);
 }
 
-function renderQuestionNav(){
-  document.querySelectorAll('.nav-number').forEach((btn,i)=>{
-    btn.classList.toggle('answered',answers[i]!=null);
+// ---------------- REVIEW ----------------
+function showReview(data){
+  app.innerHTML='';
+
+  const card=document.createElement('div');
+  card.className='exam-card';
+
+  card.innerHTML=`<h2>${data.name}'s Result</h2><p>${data.score}/20</p>`;
+
+  data.answers.forEach((ans,i)=>{
+    const q=questions[i];
+    const div=document.createElement('div');
+    div.className='review-card';
+
+    const correct=q.answer;
+
+    div.classList.add(ans===correct?'correct':'wrong');
+
+    div.innerHTML=`
+      <p>${q.text}</p>
+      <div class="review-answers">
+        <div><strong>Your:</strong> ${ans||'None'}</div>
+        <div><strong>Correct:</strong> ${correct}</div>
+      </div>
+    `;
+
+    card.appendChild(div);
   });
+
+  const back=document.createElement('button');
+  back.textContent='Back';
+  back.onclick=start;
+
+  card.appendChild(back);
+  app.appendChild(card);
 }
 
 // ---------------- SUBMIT ----------------
 function submitExam(){
-  if(submitted) return; submitted=true;
+  if(submitted) return;
+  submitted=true;
+
   clearInterval(timerId);
+
   const score=answers.reduce((s,a,i)=> s + (a===questions[i].answer),0);
+
   saveScore(score);
-  app.innerHTML=`<div class="exam-card"><h2>Done</h2><p>Score: ${score}/20</p></div>`;
+
+  showReview({
+    name: currentUserName,
+    score,
+    answers
+  });
+
   app.appendChild(buildLeaderboard());
 }
 
 // ---------------- START ----------------
 function start(){
   app.innerHTML='';
-  const div = document.createElement('div'); div.className='name-input-card';
-  const input=document.createElement('input'); input.placeholder='Enter Name';
-  const btn=document.createElement('button'); btn.textContent='Start';
+
+  const div=document.createElement('div');
+  div.className='name-input-card';
+
+  const input=document.createElement('input');
+  input.placeholder='Enter Name';
+
+  const btn=document.createElement('button');
+  btn.textContent='Continue';
+
+  const options=document.createElement('div');
+
   btn.onclick=()=>{
-    if(!input.value.trim()) return alert('Enter name');
-    currentUserName=input.value.trim();
-    startTimer();
-    renderQuestion();
+    const name=input.value.trim();
+    if(!name) return alert('Enter name');
+
+    currentUserName=name;
+
+    const user=getUser(name);
+    options.innerHTML='';
+
+    if(user){
+      const review=document.createElement('button');
+      review.textContent='Review Score';
+      review.onclick=()=>showReview(user);
+
+      const retake=document.createElement('button');
+      retake.textContent='Retake Test';
+      retake.onclick=()=>{
+        currentIndex=0;
+        answers=Array(questions.length).fill(null);
+        secondsLeft=20*60;
+        submitted=false;
+        startTimer();
+        renderQuestion();
+      };
+
+      options.append(review,retake);
+    } else {
+      startTimer();
+      renderQuestion();
+    }
   };
-  div.append(input,btn);
+
+  div.append(input,btn,options);
   app.appendChild(div);
+
+  // 🔥 show leaderboard immediately
+  app.appendChild(buildLeaderboard());
 }
 
 start();
