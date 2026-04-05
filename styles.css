@@ -75,6 +75,7 @@ body {
   margin-bottom: 10px;
 }
 
+/* OPTION BUTTONS */
 .exam-card button {
   padding: 10px;
   border: none;
@@ -93,7 +94,6 @@ body {
 
 .exam-card button.selected {
   background: var(--success);
-  color: var(--background);
 }
 
 /* QUESTION NAV */
@@ -123,15 +123,18 @@ body {
 
 .nav-number.active {
   transform: translateY(-2px);
+  background: var(--success);
+  color: #000;
 }
 
 /* NAME INPUT */
 .name-input-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   max-width: 400px;
   margin: auto;
+  text-align: center;
 }
 
 .name-input-card input {
@@ -166,6 +169,10 @@ body {
   position: relative;
 }
 
+.leaderboard-panel h3 {
+  margin-bottom: 10px;
+}
+
 .delete-leaderboard {
   position: absolute;
   right: 10px;
@@ -173,9 +180,10 @@ body {
   background: var(--danger);
   color: #fff;
   border: none;
-  padding: 5px 8px;
-  border-radius: 5px;
+  padding: 6px 10px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 12px;
 }
 
 .delete-leaderboard:hover {
@@ -185,11 +193,37 @@ body {
 .leaderboard-item {
   display: flex;
   justify-content: space-between;
-  padding: 5px 0;
+  padding: 6px 0;
   border-bottom: 1px solid rgba(255, 217, 0, 0.2);
   font-weight: bold;
 }
 
 .leaderboard-item:last-child {
   border-bottom: none;
+}
+
+/* REVIEW SYSTEM (YOU WERE MISSING THIS) */
+.review-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.review-card.correct {
+  border-color: var(--success);
+}
+
+.review-card.wrong {
+  border-color: var(--danger);
+}
+
+.review-answers {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+.review-answers strong {
+  color: var(--text);
 }
