@@ -1,3 +1,21 @@
+// ---------------- FIREBASE SETUP ----------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDTbZl9waOHVBJji1tXsBX1I8-L1-A7sPU",
+  authDomain: "physics-cbt.firebaseapp.com",
+  projectId: "physics-cbt",
+  storageBucket: "physics-cbt.firebasestorage.app",
+  messagingSenderId: "409298097753",
+  appId: "1:409298097753:web:2b2be75a6aadcdcbc78348"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const scoresCol = collection(db, "scores");
+
+// ---------------- QUIZ DATA ----------------
 const questions = [
   {text:'Work is said to be done when:', options:['Force is applied','Force causes displacement','Energy is present','Motion exists'], answer:'B'},
   {text:'The unit of work is:', options:['Watt','Joule','Newton','Pascal'], answer:'B'},
@@ -21,9 +39,9 @@ const questions = [
   {text:'A body falls slower in oil than in water because:', options:['Oil is lighter','Oil has higher viscosity','Oil has lower density','Oil has no resistance'], answer:'B'}
 ];
 
-const app = document.getElementById('app');
+// ---------------- APP STATE ----------------
+const appEl = document.getElementById('app');
 const timerEl = document.getElementById('timer');
-
 let currentIndex = 0;
 let answers = Array(questions.length).fill(null);
 let secondsLeft = 20*60;
@@ -37,7 +55,7 @@ function startTimer(){
   timerId = setInterval(()=>{
     secondsLeft--;
     timerEl.textContent = formatTime(secondsLeft);
-    if(secondsLeft <=0){
+    if(secondsLeft <= 0){
       clearInterval(timerId);
       submitExam();
     }
@@ -48,39 +66,32 @@ function formatTime(s){
   return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
 
-// ---------------- LEADERBOARD ----------------
-function loadLeaderboard(){
-  return JSON.parse(localStorage.getItem('cbt_leaderboard'))||[];
+// ---------------- FIRESTORE ----------------
+async function saveScoreFirestore(score){
+  try {
+    await addDoc(scoresCol, {
+      name: currentUserName,
+      score,
+      percentage: Math.round(score/questions.length*100),
+      answers,
+      createdAt: new Date()
+    });
+  } catch(e){
+    console.error("Error saving score:", e);
+  }
 }
 
-function saveScore(score){
-  const lb = loadLeaderboard();
-  lb.push({
-    name: currentUserName,
-    score,
-    percentage: Math.round(score/questions.length*100),
-    answers: [...answers]
-  });
-  lb.sort((a,b)=>b.score-a.score);
-  localStorage.setItem('cbt_leaderboard',JSON.stringify(lb.slice(0,10)));
+async function loadLeaderboardFirestore(){
+  const q = query(scoresCol, orderBy('score','desc'), limit(10));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => doc.data());
 }
 
-function buildLeaderboard(){
-  const lb = loadLeaderboard();
+async function buildLeaderboard(){
+  const lb = await loadLeaderboardFirestore();
   const div = document.createElement('div');
   div.className='leaderboard-panel';
   div.innerHTML='<h3>Leaderboard</h3>';
-
-  const del = document.createElement('button');
-  del.className='delete-leaderboard';
-  del.textContent='Delete Leaderboard';
-  del.onclick=()=>{
-    if(prompt('PIN')==='2151'){
-      localStorage.removeItem('cbt_leaderboard');
-      location.reload();
-    } else alert('Wrong PIN');
-  };
-  div.appendChild(del);
 
   if(lb.length===0){
     div.innerHTML+='<p>No scores yet</p>';
@@ -97,17 +108,11 @@ function buildLeaderboard(){
   return div;
 }
 
-// ---------------- USER HISTORY ----------------
-function getUser(name){
-  return loadLeaderboard().find(e=>e.name.toLowerCase()===name.toLowerCase());
-}
-
 // ---------------- QUIZ ----------------
 function renderQuestion(){
-  app.innerHTML='';
+  appEl.innerHTML='';
   const q = questions[currentIndex];
-
-  const card=document.createElement('div');
+  const card = document.createElement('div');
   card.className='exam-card';
   card.innerHTML=`<h3>Q${currentIndex+1}</h3><p>${q.text}</p>`;
 
@@ -126,7 +131,7 @@ function renderQuestion(){
     card.appendChild(btn);
   });
 
-  const nav=document.createElement('div');
+  const nav = document.createElement('div');
   nav.className='question-nav';
   questions.forEach((_,i)=>{
     const b=document.createElement('div');
@@ -139,27 +144,25 @@ function renderQuestion(){
   });
 
   card.appendChild(nav);
-  app.appendChild(card);
+  appEl.appendChild(card);
 }
 
 // ---------------- REVIEW ----------------
 function showReview(data){
-  app.innerHTML='';
-  const card=document.createElement('div');
+  appEl.innerHTML='';
+  const card = document.createElement('div');
   card.className='exam-card';
   card.innerHTML=`<h2>${data.name}'s Result</h2><p>${data.score}/20</p>`;
-
   data.answers.forEach((ans,i)=>{
     const q=questions[i];
     const div=document.createElement('div');
     div.className='review-card';
-    const correct=q.answer;
-    div.classList.add(ans===correct?'correct':'wrong');
+    div.classList.add(ans===q.answer?'correct':'wrong');
     div.innerHTML=`
       <p>${q.text}</p>
       <div class="review-answers">
         <div><strong>Your:</strong> ${ans||'None'}</div>
-        <div><strong>Correct:</strong> ${correct}</div>
+        <div><strong>Correct:</strong> ${q.answer}</div>
       </div>
     `;
     card.appendChild(div);
@@ -169,24 +172,23 @@ function showReview(data){
   back.textContent='Back';
   back.onclick=start;
   card.appendChild(back);
-
-  app.appendChild(card);
+  appEl.appendChild(card);
 }
 
 // ---------------- SUBMIT ----------------
-function submitExam(){
+async function submitExam(){
   if(submitted) return;
   submitted=true;
   clearInterval(timerId);
   const score=answers.reduce((s,a,i)=> s + (a===questions[i].answer),0);
-  saveScore(score);
+  await saveScoreFirestore(score);
   showReview({ name: currentUserName, score, answers });
-  app.appendChild(buildLeaderboard());
+  appEl.appendChild(await buildLeaderboard());
 }
 
 // ---------------- START ----------------
 function start(){
-  app.innerHTML='';
+  appEl.innerHTML='';
   const div=document.createElement('div');
   div.className='name-input-card';
 
@@ -196,49 +198,25 @@ function start(){
   const btn=document.createElement('button');
   btn.textContent='Continue';
 
-  const options=document.createElement('div');
-  options.style.display='flex';
-  options.style.gap='10px';
-  options.style.marginTop='10px';
-
   btn.onclick=()=>{
     const name=input.value.trim();
     if(!name) return alert('Enter name');
     currentUserName=name;
 
-    const user=getUser(name);
-    options.innerHTML='';
-
-    if(user){
-      // Returning user options
-      const review=document.createElement('button');
-      review.textContent='Review Score';
-      review.onclick=()=>showReview(user);
-
-      const retake=document.createElement('button');
-      retake.textContent='Retake Test';
-      retake.onclick=()=>{
-        currentIndex=0;
-        answers=Array(questions.length).fill(null);
-        secondsLeft=20*60;
-        submitted=false;
-        startTimer();
-        renderQuestion();
-      };
-
-      options.append(review,retake);
-    } else {
-      // New user goes straight to quiz
-      startTimer();
-      renderQuestion();
-    }
+    // Reset state and start quiz
+    currentIndex=0;
+    answers=Array(questions.length).fill(null);
+    submitted=false;
+    secondsLeft=20*60;
+    startTimer();
+    renderQuestion();
   };
 
-  div.append(input,btn,options);
-  app.appendChild(div);
+  div.append(input,btn);
+  appEl.appendChild(div);
 
-  // 🔥 show leaderboard immediately
-  app.appendChild(buildLeaderboard());
+  // show leaderboard immediately
+  buildLeaderboard().then(lbDiv => appEl.appendChild(lbDiv));
 }
 
 // ---------------- INIT ----------------
