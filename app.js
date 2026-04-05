@@ -26,160 +26,123 @@ const timerEl = document.getElementById('timer');
 
 let currentIndex = 0;
 let answers = Array(questions.length).fill(null);
-let secondsLeft = 20 * 60;
+let secondsLeft = 20*60;
 let timerId = null;
 let submitted = false;
 let currentUserName = '';
 
-// ------------------ LEADERBOARD ------------------
-function loadLeaderboard(){
-  return JSON.parse(localStorage.getItem('cbt_leaderboard')) || [];
-}
-
-function saveScore(score){
-  const leaderboard = loadLeaderboard();
-
-  leaderboard.push({
-    name: currentUserName,
-    score,
-    percentage: Math.round((score / questions.length) * 100),
-    time: new Date().toLocaleDateString()
-  });
-
-  leaderboard.sort((a,b)=>b.score - a.score);
-
-  localStorage.setItem('cbt_leaderboard', JSON.stringify(leaderboard.slice(0, 10)));
-}
-
-function buildLeaderboard(){
-  const lb = loadLeaderboard();
-  const div = document.createElement('div');
-  div.className = 'leaderboard-panel';
-
-  div.innerHTML = '<h3>Leaderboard</h3>';
-
-  // DELETE BUTTON
-  const del = document.createElement('button');
-  del.textContent = 'Delete Leaderboard';
-
-  del.onclick = ()=>{
-    const pin = prompt('Enter PIN:');
-    if(pin === '2151'){
-      localStorage.removeItem('cbt_leaderboard');
-      location.reload();
-    } else {
-      alert('Wrong PIN');
-    }
-  };
-
-  div.appendChild(del);
-
-  if(lb.length === 0){
-    div.innerHTML += '<p>No scores yet</p>';
-    return div;
-  }
-
-  lb.forEach((e,i)=>{
-    const item = document.createElement('div');
-    item.textContent = `${i+1}. ${e.name} - ${e.score}/20`;
-    div.appendChild(item);
-  });
-
-  return div;
-}
-
-// ------------------ TIMER ------------------
+// ---------------- TIMER ----------------
 function startTimer(){
   timerEl.textContent = formatTime(secondsLeft);
-
   timerId = setInterval(()=>{
     secondsLeft--;
     timerEl.textContent = formatTime(secondsLeft);
-
-    if(secondsLeft <= 0){
+    if(secondsLeft <=0){
       clearInterval(timerId);
       submitExam();
     }
   },1000);
 }
 
-function formatTime(s){
-  const m = String(Math.floor(s/60)).padStart(2,'0');
-  const sec = String(s%60).padStart(2,'0');
-  return `${m}:${sec}`;
+function formatTime(s){ return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+
+// ---------------- LEADERBOARD ----------------
+function loadLeaderboard(){ return JSON.parse(localStorage.getItem('cbt_leaderboard'))||[]; }
+function saveScore(score){
+  const lb = loadLeaderboard();
+  lb.push({name:currentUserName,score,percentage:Math.round(score/questions.length*100),time:new Date().toLocaleDateString()});
+  lb.sort((a,b)=>b.score-a.score);
+  localStorage.setItem('cbt_leaderboard',JSON.stringify(lb.slice(0,10)));
 }
 
-// ------------------ QUIZ ------------------
-function renderQuestion(){
-  app.innerHTML = '';
-
-  const q = questions[currentIndex];
-
+function buildLeaderboard(){
+  const lb = loadLeaderboard();
   const div = document.createElement('div');
-  div.className = 'exam-card';
+  div.className='leaderboard-panel';
+  div.innerHTML='<h3>Leaderboard</h3>';
+  const del = document.createElement('button');
+  del.className='delete-leaderboard';
+  del.textContent='Delete Leaderboard';
+  del.onclick=()=>{ if(prompt('PIN')==='2151'){ localStorage.removeItem('cbt_leaderboard'); location.reload(); } else alert('Wrong PIN'); };
+  div.appendChild(del);
 
-  div.innerHTML = `<h3>Q${currentIndex+1}</h3><p>${q.text}</p>`;
+  if(lb.length===0){ div.innerHTML+='<p>No scores yet</p>'; return div; }
+
+  lb.forEach((e,i)=>{
+    const item = document.createElement('div');
+    item.className='leaderboard-item';
+    item.textContent=`${i+1}. ${e.name} - ${e.score}/20`;
+    div.appendChild(item);
+  });
+
+  return div;
+}
+
+// ---------------- QUIZ ----------------
+function renderQuestion(){
+  app.innerHTML='';
+  const q = questions[currentIndex];
+  const card = document.createElement('div'); card.className='exam-card';
+  const h = document.createElement('h3'); h.textContent=`Q${currentIndex+1}`;
+  const p = document.createElement('p'); p.textContent=q.text;
+  card.append(h,p);
 
   q.options.forEach((opt,i)=>{
     const btn = document.createElement('button');
-    btn.textContent = `${['A','B','C','D'][i]}. ${opt}`;
-
-    btn.onclick = ()=>{
-      answers[currentIndex] = ['A','B','C','D'][i];
-      currentIndex++;
-
-      if(currentIndex < questions.length){
-        renderQuestion();
-      } else {
-        submitExam();
-      }
+    btn.textContent=`${['A','B','C','D'][i]}. ${opt}`;
+    if(answers[currentIndex]===['A','B','C','D'][i]) btn.style.background='#4ade80';
+    btn.onclick=()=>{
+      answers[currentIndex]=['A','B','C','D'][i];
+      renderQuestionNav();
+      if(currentIndex<questions.length-1){ currentIndex++; renderQuestion(); } else { submitExam(); }
     };
-
-    div.appendChild(btn);
+    card.appendChild(btn);
   });
 
-  app.appendChild(div);
+  const navDiv = document.createElement('div'); navDiv.className='question-nav';
+  questions.forEach((_,i)=>{
+    const navBtn = document.createElement('div'); navBtn.className='nav-number';
+    navBtn.textContent=i+1;
+    if(answers[i]) navBtn.classList.add('answered');
+    if(i===currentIndex) navBtn.classList.add('active');
+    navBtn.onclick=()=>{ currentIndex=i; renderQuestion(); };
+    navDiv.appendChild(navBtn);
+  });
+  card.appendChild(navDiv);
+
+  app.appendChild(card);
 }
 
+function renderQuestionNav(){
+  document.querySelectorAll('.nav-number').forEach((btn,i)=>{
+    btn.classList.toggle('answered',answers[i]!=null);
+  });
+}
+
+// ---------------- SUBMIT ----------------
 function submitExam(){
-  if(submitted) return;
-  submitted = true;
-
+  if(submitted) return; submitted=true;
   clearInterval(timerId);
-
-  const score = answers.reduce((s,a,i)=> s + (a === questions[i].answer),0);
-
+  const score=answers.reduce((s,a,i)=> s + (a===questions[i].answer),0);
   saveScore(score);
-
-  app.innerHTML = `
-    <div class="exam-card">
-      <h2>Done</h2>
-      <p>Score: ${score}/20</p>
-    </div>
-  `;
-
+  app.innerHTML=`<div class="exam-card"><h2>Done</h2><p>Score: ${score}/20</p></div>`;
   app.appendChild(buildLeaderboard());
 }
 
-// ------------------ START ------------------
+// ---------------- START ----------------
 function start(){
-  app.innerHTML = '';
-
-  const input = document.createElement('input');
-  input.placeholder = 'Enter name';
-
-  const btn = document.createElement('button');
-  btn.textContent = 'Start';
-
-  btn.onclick = ()=>{
+  app.innerHTML='';
+  const div = document.createElement('div'); div.className='name-input-card';
+  const input=document.createElement('input'); input.placeholder='Enter Name';
+  const btn=document.createElement('button'); btn.textContent='Start';
+  btn.onclick=()=>{
     if(!input.value.trim()) return alert('Enter name');
-
-    currentUserName = input.value.trim();
+    currentUserName=input.value.trim();
     startTimer();
     renderQuestion();
   };
-
-  app.append(input, btn);
+  div.append(input,btn);
+  app.appendChild(div);
 }
 
 start();
