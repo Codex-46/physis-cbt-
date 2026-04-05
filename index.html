@@ -1,20 +1,34 @@
-<!-- Firebase SDK -->
-<script type="module">
-  // Firebase v9+ modular SDK
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Physics CBT — Exam Practice</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.16.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.16.0/firebase-firestore.js"></script>
+</head>
+<body>
+  <div class="exam-shell">
+    <header class="exam-header">
+      <div>
+        <h1>Physics CBT</h1>
+        <p>20 Questions • Work, Energy, Power, Friction, Surface Tension, Viscosity</p>
+      </div>
+      <div class="timer-panel">
+        <span>Time left</span>
+        <strong id="timer">20:00</strong>
+      </div>
+    </header>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDTbZl9waOHVBJji1tXsBX1I8-L1-A7sPU",
-    authDomain: "physics-cbt.firebaseapp.com",
-    projectId: "physics-cbt",
-    storageBucket: "physics-cbt.firebasestorage.app",
-    messagingSenderId: "409298097753",
-    appId: "1:409298097753:web:2b2be75a6aadcdcbc78348",
-    databaseURL: "https://physics-cbt-default-rtdb.firebaseio.com/"
-  };
+    <main id="app" class="exam-main"></main>
 
-  // Initialize Firebase
-  window.firebaseApp = initializeApp(firebaseConfig);
-  window.db = getDatabase(firebaseApp);
-</script>
+    <footer class="exam-footer">
+      Built for fast practice and quick review.
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
