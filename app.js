@@ -31,20 +31,19 @@ let timerId = null;
 let submitted = false;
 let currentUserName = '';
 
+// ------------------ LEADERBOARD ------------------
 function loadLeaderboard(){
-  const stored = localStorage.getItem('cbt_leaderboard');
-  return stored ? JSON.parse(stored) : [];
+  return JSON.parse(localStorage.getItem('cbt_leaderboard')) || [];
 }
 
 function saveScore(score){
   const leaderboard = loadLeaderboard();
-  const timestamp = new Date().toLocaleString();
 
   leaderboard.push({
-    name: currentUserName || 'Anonymous',
+    name: currentUserName,
     score,
     percentage: Math.round((score / questions.length) * 100),
-    timestamp
+    time: new Date().toLocaleDateString()
   });
 
   leaderboard.sort((a,b)=>b.score - a.score);
@@ -52,67 +51,47 @@ function saveScore(score){
   localStorage.setItem('cbt_leaderboard', JSON.stringify(leaderboard.slice(0, 10)));
 }
 
-function buildLeaderboardPanel(){
+function buildLeaderboard(){
   const lb = loadLeaderboard();
-  const panel = document.createElement('div');
-  panel.className = 'leaderboard-panel';
+  const div = document.createElement('div');
+  div.className = 'leaderboard-panel';
 
-  panel.innerHTML = '<h3>Recent Attempts</h3>';
+  div.innerHTML = '<h3>Leaderboard</h3>';
 
-  // ✅ DELETE BUTTON FIXED
-  const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = 'Delete Leaderboard';
-  deleteBtn.className = 'delete-leaderboard-btn';
+  // DELETE BUTTON
+  const del = document.createElement('button');
+  del.textContent = 'Delete Leaderboard';
 
-  deleteBtn.onclick = function() {
-    const pin = prompt('Enter PIN to delete leaderboard:');
-    if (pin && pin.trim() === '2151') {
+  del.onclick = ()=>{
+    const pin = prompt('Enter PIN:');
+    if(pin === '2151'){
       localStorage.removeItem('cbt_leaderboard');
-      alert('Leaderboard deleted!');
       location.reload();
     } else {
-      alert('Incorrect PIN');
+      alert('Wrong PIN');
     }
   };
 
-  panel.appendChild(deleteBtn);
+  div.appendChild(del);
 
   if(lb.length === 0){
-    const empty = document.createElement('div');
-    empty.className = 'muted';
-    empty.textContent = 'No attempts yet.';
-    panel.appendChild(empty);
-    return panel;
+    div.innerHTML += '<p>No scores yet</p>';
+    return div;
   }
 
-  const list = document.createElement('div');
-  list.className = 'leaderboard-list';
-
-  lb.slice(0, 5).forEach((entry, idx)=>{
+  lb.forEach((e,i)=>{
     const item = document.createElement('div');
-    item.className = 'leaderboard-item';
-    item.innerHTML = `
-      <span class='lb-rank'>#${idx + 1}</span>
-      <span class='lb-name'>${entry.name}</span>
-      <span class='lb-score'>${entry.score}/20</span>
-      <span class='lb-pct'>${entry.percentage}%</span>
-      <span class='lb-time'>${entry.timestamp.split(',')[0]}</span>
-    `;
-    list.appendChild(item);
+    item.textContent = `${i+1}. ${e.name} - ${e.score}/20`;
+    div.appendChild(item);
   });
 
-  panel.appendChild(list);
-  return panel;
+  return div;
 }
 
-function formatTime(seconds){
-  const m = String(Math.floor(seconds / 60)).padStart(2,'0');
-  const s = String(seconds % 60).padStart(2,'0');
-  return `${m}:${s}`;
-}
-
+// ------------------ TIMER ------------------
 function startTimer(){
   timerEl.textContent = formatTime(secondsLeft);
+
   timerId = setInterval(()=>{
     secondsLeft--;
     timerEl.textContent = formatTime(secondsLeft);
@@ -121,71 +100,32 @@ function startTimer(){
       clearInterval(timerId);
       submitExam();
     }
-  }, 1000);
+  },1000);
 }
 
-function submitExam(){
-  if(submitted) return;
-  submitted = true;
-  clearInterval(timerId);
-
-  const score = answers.reduce((sum, answer, idx)=>{
-    return sum + (answer === questions[idx].answer ? 1 : 0);
-  }, 0);
-
-  saveScore(score);
-
-  app.innerHTML = '';
-
-  const report = document.createElement('div');
-  report.className = 'exam-card';
-
-  report.innerHTML = `
-    <h2>Exam Submitted</h2>
-    <p>Score: ${score} / ${questions.length}</p>
-    <p>Percentage: ${Math.round((score / questions.length) * 100)}%</p>
-  `;
-
-  const restart = document.createElement('button');
-  restart.textContent = 'Restart Exam';
-
-  restart.onclick = ()=>{
-    currentIndex = 0;
-    answers = Array(questions.length).fill(null);
-    secondsLeft = 20 * 60;
-    submitted = false;
-    startTimer();
-    renderQuestion();
-  };
-
-  report.appendChild(buildLeaderboardPanel());
-  report.appendChild(restart);
-
-  app.appendChild(report);
+function formatTime(s){
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const sec = String(s%60).padStart(2,'0');
+  return `${m}:${sec}`;
 }
 
+// ------------------ QUIZ ------------------
 function renderQuestion(){
   app.innerHTML = '';
 
   const q = questions[currentIndex];
 
-  const container = document.createElement('div');
-  container.className = 'exam-card';
+  const div = document.createElement('div');
+  div.className = 'exam-card';
 
-  const title = document.createElement('h3');
-  title.textContent = `Question ${currentIndex + 1}`;
+  div.innerHTML = `<h3>Q${currentIndex+1}</h3><p>${q.text}</p>`;
 
-  const text = document.createElement('p');
-  text.textContent = q.text;
-
-  const optionsDiv = document.createElement('div');
-
-  ['A','B','C','D'].forEach((letter, i)=>{
+  q.options.forEach((opt,i)=>{
     const btn = document.createElement('button');
-    btn.textContent = `${letter}. ${q.options[i]}`;
+    btn.textContent = `${['A','B','C','D'][i]}. ${opt}`;
 
     btn.onclick = ()=>{
-      answers[currentIndex] = letter;
+      answers[currentIndex] = ['A','B','C','D'][i];
       currentIndex++;
 
       if(currentIndex < questions.length){
@@ -195,27 +135,44 @@ function renderQuestion(){
       }
     };
 
-    optionsDiv.appendChild(btn);
+    div.appendChild(btn);
   });
 
-  container.append(title, text, optionsDiv);
-  app.appendChild(container);
+  app.appendChild(div);
 }
 
-function showNameInput(){
+function submitExam(){
+  if(submitted) return;
+  submitted = true;
+
+  clearInterval(timerId);
+
+  const score = answers.reduce((s,a,i)=> s + (a === questions[i].answer),0);
+
+  saveScore(score);
+
+  app.innerHTML = `
+    <div class="exam-card">
+      <h2>Done</h2>
+      <p>Score: ${score}/20</p>
+    </div>
+  `;
+
+  app.appendChild(buildLeaderboard());
+}
+
+// ------------------ START ------------------
+function start(){
   app.innerHTML = '';
 
   const input = document.createElement('input');
-  input.placeholder = 'Enter your name';
+  input.placeholder = 'Enter name';
 
   const btn = document.createElement('button');
   btn.textContent = 'Start';
 
   btn.onclick = ()=>{
-    if(!input.value.trim()){
-      alert('Enter your name');
-      return;
-    }
+    if(!input.value.trim()) return alert('Enter name');
 
     currentUserName = input.value.trim();
     startTimer();
@@ -225,4 +182,4 @@ function showNameInput(){
   app.append(input, btn);
 }
 
-showNameInput();
+start();
