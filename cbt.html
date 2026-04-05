@@ -4,40 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Physics CBT — Exam Practice</title>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- App CSS -->
   <link rel="stylesheet" href="styles.css">
-
-  <!-- Firebase SDKs -->
-  <script type="module">
-    // Import Firebase functions
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
-
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyDTbZl9waOHVBJji1tXsBX1I8-L1-A7sPU",
-      authDomain: "physics-cbt.firebaseapp.com",
-      projectId: "physics-cbt",
-      storageBucket: "physics-cbt.firebasestorage.app",
-      messagingSenderId: "409298097753",
-      appId: "1:409298097753:web:2b2be75a6aadcdcbc78348"
-    };
-
-    // Initialize Firebase
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getFirestore(firebaseApp);
-
-    // Expose db to app.js
-    window.db = db;
-  </script>
 </head>
 <body>
   <div class="exam-shell">
-    <!-- HEADER -->
     <header class="exam-header">
       <div>
         <h1>Physics CBT</h1>
@@ -49,19 +19,13 @@
       </div>
     </header>
 
-    <!-- MAIN APP -->
     <main id="app" class="exam-main"></main>
 
-    <!-- LEADERBOARD (Firebase or localStorage) -->
-    <section id="leaderboard"></section>
-
-    <!-- FOOTER -->
     <footer class="exam-footer">
       Built for fast practice and quick review.
     </footer>
   </div>
 
-  <!-- App JS -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
