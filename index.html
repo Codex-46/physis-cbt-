@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Physics CBT — Exam Practice</title>
 
-  <!-- Font (so your UI doesn't look like 2008) -->
+  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase SDKs -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js"></script>
 </head>
 
 <body>
@@ -39,7 +42,7 @@
 
   </div>
 
-  <!-- JS loads LAST so DOM exists -->
-  <script src="app.js"></script>
+  <!-- App JS (your quiz code, now as a module for Firebase imports) -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
